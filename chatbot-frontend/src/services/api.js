@@ -39,6 +39,10 @@ export const deleteBusiness = (businessId) => {
 export const createBot = (businessId, data) =>
   axios.post(`${BASE_URL}/admin/${businessId}`, data);
 
+export const getBot = async (businessId) => {
+  return await axios.get(`${BASE_URL}/admin/${businessId}`);
+};
+
 export const getConversationByUserIdAndBotId = (userId, botId) => {
   return axios.get(`${BASE_URL}/conversation/${userId}/${botId}`);
 };

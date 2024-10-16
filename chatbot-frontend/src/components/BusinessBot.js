@@ -1,6 +1,6 @@
-import React, { useState } from "react";
-import { toast } from "sonner"; // Importing toast from Sonner
-import { createBot } from "../services/api";
+import React, { useState, useEffect } from "react";
+import { toast } from "sonner";
+import { createBot, getBot } from "../services/api";
 
 const BusinessBot = ({ businessId }) => {
   const [botName, setBotName] = useState("");
@@ -10,7 +10,35 @@ const BusinessBot = ({ businessId }) => {
   const [success, setSuccess] = useState(false);
   const [nextId, setNextId] = useState(1); // To generate unique IDs for conversation nodes
 
-  // Function to add a new conversation node
+  useEffect(() => {
+    const fetchBotConfig = async () => {
+      try {
+        const response = await getBot(businessId);
+        if (response?.data) {
+          const { bot_name, conversation } = response.data;
+
+          setBotName(bot_name);
+
+          const mappedConversationTree = conversation.map((node, index) => ({
+            id: (index + 1).toString(), // Generate ID from index
+            question: node.question,
+            options: [
+              { text: node.response, next: null }, // Since the response doesn't have a next node, set next as null
+            ],
+          }));
+
+          setConversationTree(mappedConversationTree); // Set conversation tree
+          setNextId(mappedConversationTree.length + 1); // Set nextId based on the number of nodes
+        }
+      } catch (err) {
+        console.error("Error fetching bot configuration:", err);
+        toast.error("Error fetching bot configuration.");
+      }
+    };
+
+    fetchBotConfig();
+  }, [businessId]); // Effect runs when businessId changes
+
   const handleAddNode = () => {
     const newNode = {
       id: nextId.toString(),
@@ -122,19 +150,13 @@ const BusinessBot = ({ businessId }) => {
                   placeholder="Enter option text"
                   className="w-1/2 mr-2 px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition duration-150 ease-in-out"
                 />
-                {/* <input
-                  value={option.next || ''}
-                  onChange={(e) => handleInputChange(nodeIndex, 'next', e.target.value, optionIndex)}
-                  placeholder="Next node ID"
-                  className="w-1/2 px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition duration-150 ease-in-out"
-                /> */}
 
                 {nodeIndex < conversationTree.length - 1 && (
                   <select>
                     {new Array(conversationTree.length)
                       .fill(0)
                       .map((opt, index) => {
-                        return <option>{index + 1}</option>;
+                        return <option key={index}>{index + 1}</option>;
                       })}
                   </select>
                 )}

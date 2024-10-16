@@ -56,17 +56,14 @@ exports.getBotConfig = async (req, res) => {
       _id: bot._id, // Use the ObjectId of the bot
       user_id: "uuid-12345", // You can change this to dynamically fetch or assign a user ID
       bot_id: bot._id, // Assuming the bot ID is the same as its _id
+      bot_name: bot.bot_name, // Include the bot_name here
       conversation,
       last_node_id: bot.conversation_tree.length > 0 ? bot.conversation_tree[bot.conversation_tree.length - 1].id : null, // Get last node ID
       created_at: new Date().toISOString(), // Current date and time in ISO format
     };
-
     res.status(200).json(botConfig);
   } catch (error) {
     console.error("Error fetching bot configuration:", error);
     res.status(500).json({ error: "Failed to fetch bot", details: error.message });
   }
 };
-
-
-
