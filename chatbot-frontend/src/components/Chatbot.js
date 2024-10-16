@@ -1,7 +1,6 @@
-// src/ChatBot.js
-
 import React, { useEffect, useState } from "react";
 import axios from "axios";
+import { toast } from "sonner"; // Importing Toaster and toast from Sonner
 
 const ChatBot = ({ businessId }) => {
   const [userId, setUserId] = useState(""); // Stores the userId from localStorage
@@ -14,32 +13,62 @@ const ChatBot = ({ businessId }) => {
   useEffect(() => {
     // Fetch userId from localStorage
     const storedUserId = localStorage.getItem("userId");
-    if (storedUserId) {
-      setUserId(storedUserId);
+    if (!storedUserId) {
+      const tmp = +new Date();
+      localStorage.setItem("userId", tmp);
+      setUserId(tmp);
     } else {
-      alert("User ID not found in localStorage!");
+      setUserId(storedUserId);
     }
 
     // Fetch bot configuration to get botId and lastNodeId
     const fetchBotConfig = async () => {
       try {
-        const res = await axios.get(`http://localhost:3001/api/admin/${businessId}`);
+        const res = await axios.get(
+          `http://localhost:3001/api/admin/${businessId}`
+        );
 
         // Set botId, lastNodeId, and conversation from the response
-        setBotId(res.data.bot_id); // Set the bot ID from the response
-        setLastNodeId(res.data.last_node_id); // Set the last node ID from the response
-        setConversation(res.data.conversation); // Store the conversation array
+        setBotId(res.data.bot_id);
+        setLastNodeId(res.data.last_node_id);
+        setConversation(res.data.conversation);
       } catch (error) {
         console.error("Error fetching bot configuration:", error);
-        const errorMessage = error.response?.data?.error || error.message || "An unknown error occurred";
-        alert("Error fetching bot configuration: " + errorMessage);
+        const errorMessage =
+          error.response?.data?.error ||
+          error.message ||
+          "An unknown error occurred";
+        toast.error("Error fetching bot configuration: " + errorMessage); // Use Sonner notification
+      }
+    };
+
+    const fetchExistingConversations = async () => {
+      if (storedUserId && botId) {
+        try {
+          const res = await axios.get(
+            `http://localhost:3001/api/conversation/${storedUserId}/${botId}`
+          );
+          if (res.data) {
+            setConversations(res.data.conversation || []);
+          }
+        } catch (error) {
+          console.error("Error fetching existing conversations:", error);
+          const errorMessage =
+            error.response?.data?.error ||
+            error.message ||
+            "An unknown error occurred";
+          toast.error("Error fetching existing conversations: " + errorMessage); // Use Sonner notification
+        }
       }
     };
 
     if (storedUserId) {
       fetchBotConfig();
     }
-  }, [businessId]); // Added businessId as a dependency
+
+    // Fetch existing conversations after bot config is retrieved
+    fetchExistingConversations();
+  }, [businessId, userId, botId]); // Added userId and botId as dependencies
 
   const handleSend = async (e) => {
     e.preventDefault();
@@ -47,69 +76,114 @@ const ChatBot = ({ businessId }) => {
 
     try {
       // Fetch the bot's response based on the user's question
-      const botResponse = fetchBotResponse(question); // Ensure this returns a valid response
+      const botResponse = fetchBotResponse(question);
 
       // Save the conversation with the response from the bot
       const res = await axios.post("http://localhost:3001/api/conversation", {
         userId,
         botId,
         question,
-        response: botResponse, // Use the bot's response here
+        response: botResponse,
         lastNodeId,
       });
 
       // Update the conversation state
-      setConversations((prev) => [...prev, { question, response: botResponse }]);
-      alert(res.data.message); // Show success message
+      setConversations((prev) => [
+        ...prev,
+        { question, response: botResponse, timestamp: new Date() }, // Add timestamp here
+      ]);
+      toast.success(res.data.message); // Use Sonner notification
 
       // Clear the question input
       setQuestion("");
     } catch (error) {
       console.error("Error saving conversation:", error);
-      const errorMessage = error.response?.data?.error || "An unknown error occurred while saving the conversation.";
-      alert("Error saving conversation: " + errorMessage);
+      const errorMessage =
+        error.response?.data?.error ||
+        "An unknown error occurred while saving the conversation.";
+      toast.error("Error saving conversation: " + errorMessage); // Use Sonner notification
     }
   };
 
   // Fetch the bot's response based on the conversation
   const fetchBotResponse = (userQuestion) => {
-    // Find the corresponding response in the conversation array
-    const matchedResponse = conversation.find(node => node.question.toLowerCase() === userQuestion.toLowerCase());
-    return matchedResponse ? matchedResponse.response : "Sorry, I didn't understand that."; // Default response if no match is found
+    const matchedResponse = conversation.find(
+      (node) => node.question.toLowerCase() === userQuestion.toLowerCase()
+    );
+    return matchedResponse
+      ? matchedResponse.response
+      : "Sorry, I didn't understand that."; // Default response if no match is found
+  };
+
+  // Helper function to format the timestamp
+  const formatTimeAgo = (timestamp) => {
+    const now = new Date();
+    const seconds = Math.floor((now - new Date(timestamp)) / 1000);
+    let interval = Math.floor(seconds / 31536000);
+
+    if (interval > 1) return interval + " years ago";
+    interval = Math.floor(seconds / 2592000);
+    if (interval > 1) return interval + " months ago";
+    interval = Math.floor(seconds / 86400);
+    if (interval > 1) return interval + " days ago";
+    interval = Math.floor(seconds / 3600);
+    if (interval > 1) return interval + " hours ago";
+    interval = Math.floor(seconds / 60);
+    if (interval > 1) return interval + " minutes ago";
+    return seconds < 30 ? "just now" : seconds + " seconds ago";
   };
 
   return (
-    <div className="max-w-2xl mx-auto p-5 bg-white shadow-lg rounded-lg">
-      <h2 className="text-2xl font-semibold mb-5 text-center">Chat with the Bot</h2>
-      <form onSubmit={handleSend} className="space-y-4">
-        <div>
-          <label className="block text-sm font-medium text-gray-700">Question:</label>
+    <div className="max-w-xl mx-auto p-5 bg-white shadow-lg rounded-lg h-[80ch] flex flex-col">
+      <h2 className="text-3xl font-semibold mb-5 text-center text-gray-800">
+        Chat with the Bot
+      </h2>
+      <div className="flex-grow overflow-auto p-4 border border-gray-200 rounded-lg bg-gray-50 no-scrollbar">
+        <ul className="space-y-2">
+          {conversations.map((conv, index) => (
+            <li key={index} className="flex flex-col gap-y-3">
+              <div className="flex justify-end">
+                <div className="max-w-xs p-3 rounded-lg text-white bg-blue-600">
+                  <strong>You:</strong>
+                  <span className="break-all ml-2">{conv.question}</span>
+                  <div className="text-xs text-gray-300">
+                    {formatTimeAgo(conv.timestamp)}
+                  </div>{" "}
+                  {/* Display timestamp */}
+                </div>
+              </div>
+              <div className="flex justify-start">
+                <div className="max-w-xs p-3 rounded-lg text-gray-700 bg-gray-200">
+                  <strong>Bot:</strong>
+                  <span className="break-all ml-2">{conv.response}</span>
+                  <div className="text-xs text-gray-700">
+                    {formatTimeAgo(conv.timestamp)}
+                  </div>{" "}
+                  {/* Display timestamp */}
+                </div>
+              </div>
+            </li>
+          ))}
+        </ul>
+      </div>
+      <form onSubmit={handleSend} className="mt-4">
+        <div className="flex">
           <input
             type="text"
             value={question}
             onChange={(e) => setQuestion(e.target.value)}
             required
-            className="mt-1 p-2 border border-gray-300 rounded-md w-full"
+            className="flex-grow p-2 border border-gray-300 rounded-l-md focus:outline-none focus:border-blue-500"
             placeholder="Type your question here..."
           />
+          <button
+            type="submit"
+            className="p-2 bg-blue-600 text-white font-semibold rounded-r-md hover:bg-blue-500 transition duration-200"
+          >
+            Send
+          </button>
         </div>
-        <button
-          type="submit"
-          className="w-full mt-4 p-2 bg-blue-600 text-white font-semibold rounded-md hover:bg-blue-500 transition duration-200"
-        >
-          Send
-        </button>
       </form>
-
-      <h3 className="text-xl font-semibold mt-6">Conversations:</h3>
-      <ul className="mt-3 space-y-2">
-        {conversations.map((conv, index) => (
-          <li key={index} className="p-4 border border-gray-200 rounded-md bg-gray-50">
-            <strong>You:</strong> {conv.question} <br />
-            <strong>Bot:</strong> {conv.response}
-          </li>
-        ))}
-      </ul>
     </div>
   );
 };

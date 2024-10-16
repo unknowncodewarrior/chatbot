@@ -12,4 +12,6 @@ router.get('/', businessController.getBusiness);
 // GET /api/business/all - Get all businesses
 router.get('/all', businessController.getAllBusinesses);
 
+router.delete('/:businessId', businessController.deleteBusiness);
+
 module.exports = router;

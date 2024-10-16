@@ -54,12 +54,32 @@ exports.getBusiness = async (req, res) => {
 // Get all businesses
 exports.getAllBusinesses = async (req, res) => {
   try {
-    const businesses = await Business.find();
-    res.json(businesses);
+    const businesses = await Business.find(); // Fetch all businesses from DB
+    res.status(200).json(businesses);
   } catch (error) {
     console.error("Error fetching businesses:", error);
     res
       .status(500)
       .json({ error: "Failed to fetch businesses", details: error.message });
+  }
+};
+
+// Delete a business by ID
+exports.deleteBusiness = async (req, res) => {
+  const { businessId } = req.params;
+
+  try {
+    const deletedBusiness = await Business.findByIdAndDelete(businessId);
+
+    if (!deletedBusiness) {
+      return res.status(404).json({ error: "Business not found." });
+    }
+
+    res.status(200).json({ message: "Business deleted successfully." });
+  } catch (error) {
+    console.error("Error deleting business:", error);
+    res
+      .status(500)
+      .json({ error: "Failed to delete business", details: error.message });
   }
 };

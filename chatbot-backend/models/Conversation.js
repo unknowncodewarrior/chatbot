@@ -7,6 +7,7 @@ const conversationSchema = new mongoose.Schema({
     {
       question: { type: String, required: true },
       response: { type: String, required: true },
+      timestamp: { type: Date, default: Date.now }, // Add timestamp for each message
     },
   ],
   last_node_id: { type: String, required: true }, // Assuming it’s a string

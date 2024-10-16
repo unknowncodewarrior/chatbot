@@ -3,6 +3,7 @@
 const Conversation = require("../models/Conversation");
 
 // Save or update a conversation
+// Save or update a conversation
 exports.saveConversation = async (req, res) => {
   const { userId, botId, question, response, lastNodeId } = req.body;
   // Validate required fields
@@ -14,9 +15,11 @@ exports.saveConversation = async (req, res) => {
     // Check if conversation already exists
     let conversation = await Conversation.findOne({ user_id: userId, bot_id: botId });
 
+    const newMessage = { question, response, timestamp: new Date() }; // Add timestamp here
+
     if (conversation) {
       // If conversation exists, update it
-      conversation.conversation.push({ question, response });
+      conversation.conversation.push(newMessage);
       conversation.last_node_id = lastNodeId; // Update the last node ID
       await conversation.save(); // Save the updated conversation
     } else {
@@ -24,7 +27,7 @@ exports.saveConversation = async (req, res) => {
       conversation = new Conversation({
         user_id: userId,
         bot_id: botId,
-        conversation: [{ question, response }],
+        conversation: [newMessage], // Add the first message
         last_node_id: lastNodeId,
       });
       await conversation.save();
@@ -46,6 +49,7 @@ exports.saveConversation = async (req, res) => {
     res.status(500).json({ error: "Failed to save conversation", details: error.message });
   }
 };
+
 
 // Fetch a conversation
 exports.getConversation = async (req, res) => {

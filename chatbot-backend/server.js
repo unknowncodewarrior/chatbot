@@ -6,7 +6,6 @@ const businessRoutes = require('./routes/business'); // Import the business rout
 const adminRoutes = require('./routes/admin'); // Import the admin routes
 const conversationRoutes = require('./routes/conversation'); // Import the conversation routes
 const chatRoutes = require('./routes/chat'); // Import the chat routes
-const userRoutes = require("./routes/userRoutes");
 
 // Connect to the database
 connectDB();
@@ -23,9 +22,6 @@ app.use('/api/business', businessRoutes); // Business-related routes
 app.use('/api/admin', adminRoutes); // Admin-related routes
 
 app.use('/api/conversation', conversationRoutes); // Conversation-related routes
-
-app.use("/api", userRoutes);// Use user routes
-
 
 // Start the server
 const PORT = process.env.PORT || 3001;
