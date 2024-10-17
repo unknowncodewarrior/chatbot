@@ -1,6 +1,10 @@
 import React, { useEffect, useState } from "react";
-import axios from "axios";
 import { toast } from "sonner"; // Importing Toaster and toast from Sonner
+import {
+  getBot,
+  getConversationByUserIdAndBotId,
+  updateConversation,
+} from "../services/api";
 
 const ChatBot = ({ businessId }) => {
   const [userId, setUserId] = useState(""); // Stores the userId from localStorage
@@ -24,10 +28,7 @@ const ChatBot = ({ businessId }) => {
     // Fetch bot configuration to get botId and lastNodeId
     const fetchBotConfig = async () => {
       try {
-        const res = await axios.get(
-          `http://localhost:3001/api/admin/${businessId}`
-        );
-
+        const res = await getBot(businessId);
         // Set botId, lastNodeId, and conversation from the response
         setBotId(res.data.bot_id);
         setLastNodeId(res.data.last_node_id);
@@ -45,8 +46,9 @@ const ChatBot = ({ businessId }) => {
     const fetchExistingConversations = async () => {
       if (storedUserId && botId) {
         try {
-          const res = await axios.get(
-            `http://localhost:3001/api/conversation/${storedUserId}/${botId}`
+          const res = await getConversationByUserIdAndBotId(
+            storedUserId,
+            botId
           );
           if (res.data) {
             setConversations(res.data.conversation || []);
@@ -77,16 +79,15 @@ const ChatBot = ({ businessId }) => {
     try {
       // Fetch the bot's response based on the user's question
       const botResponse = fetchBotResponse(question);
+      const response = botResponse;
 
-      // Save the conversation with the response from the bot
-      const res = await axios.post("http://localhost:3001/api/conversation", {
+      const res = await updateConversation(
         userId,
         botId,
         question,
-        response: botResponse,
-        lastNodeId,
-      });
-
+        response,
+        lastNodeId
+      );
       // Update the conversation state
       setConversations((prev) => [
         ...prev,

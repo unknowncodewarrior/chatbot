@@ -52,7 +52,7 @@ const BusinessManage = ({ isAdmin }) => {
 
               {isAdmin && <Link to={'/business/'+business._id} >
               <button
-                className="p-2 bg-red-600 text-white font-semibold rounded hover:bg-red-500 transition duration-200"
+                className="p-2 bg-blue-500 text-white font-semibold rounded hover:bg-red-500 transition duration-200"
                 >
                 configure
               </button>
